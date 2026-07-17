@@ -925,25 +925,20 @@
       target.scrollIntoView({ block: 'start', inline: 'nearest' });
     };
 
+    // Run right away, then again after the browser has painted the
+    // display change, and once more after any layout/animation settles.
+    // This combination fixes the "still stuck on the old view" issue
+    // seen on some mobile browsers and embedded/preview scroll containers.
     scrollToTop();
     requestAnimationFrame(() => requestAnimationFrame(scrollToTop));
     setTimeout(scrollToTop, 60);
     setTimeout(scrollToTop, 250);
   }
 
-  // ---------------- AI CHAT WIDGET ----------------
+  // ---------------- LOCAL CHAT WIDGET (no API / no network needed) ----------------
   let chatOpen = false;
   let chatStarted = false;
-  let chatHistory = []; // {role:'user'|'assistant', content:'...'}
   let chatBusy = false;
-
-  // === Gemini API config ===
-  // TODO: replace this with your real Gemini API key from https://aistudio.google.com/apikey
-  // Note: for a real production site, don't ship the key in client-side JS like this —
-  // proxy the request through your own backend so the key isn't visible to visitors.
-  const GEMINI_API_KEY = "AQ.Ab8RN6LwPPNXoN6oLih0E3QY8gostfXcluS_jyptpvi3nB9jmw";
-  const GEMINI_MODEL = "gemini-2.0-flash";
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
   const CONTACT_INFO = {
     phones: ["+995 598 96 97 99", "+995 555 90 27 33"],
@@ -953,50 +948,134 @@
     name: "Noizy Bar"
   };
 
-  // Builds a full, current-language knowledge base string from the live site data
-  // so the assistant always answers from exactly what's on the site.
-  function buildKnowledgeBase(lang){
-    const L = (obj) => obj[lang] || obj.ka;
-    let out = `${CONTACT_INFO.name} — ${lang==='ka' ? 'ხელნაკეთი ბურგერების ბარი სურამში' : 'a handmade burger bar in Surami, Georgia'}.\n\n`;
+  // ---- keyword dictionaries (checked regardless of the current UI language,
+  //      so the bot understands the question whether it's typed in ka or en) ----
+  const CHAT_KEYWORDS = {
+    greeting: ["გამარჯობა","სალამ","ჰეი","hello","hi ","hi,","hey","გამარჯობათ"],
+    thanks:   ["მადლობ","გმადლობთ","thanks","thank you","thnx"],
+    bye:      ["ნახვამდის","bye","goodbye","კარგად იყავ"],
+    address:  ["მისამართ","სად ხართ","საიდან ხართ","ლოკაცი","address","location","where are you","where is","where you"],
+    phone:    ["ტელეფონ","დარეკვ","ნომერ","phone","call you","number","contact"],
+    social:   ["ფეისბუქ","ინსტაგრამ","facebook","instagram","social"],
+    composition: ["შემადგენლ","ინგრედიენტ","რისგან","რა შედის","რითი","composition","ingredient","what is in","whats in","what's in","made of"],
+    drinksCat: ["სასმელ","drink","beverage"],
+    combosCat: ["კომბო","combo"],
+    menuCat:   ["მენიუ","menu","რა გაქვთ","what do you have","what do you offer","full menu"],
+    priceWord: ["ფას","ღირს","price","cost","how much"],
+    hours:     ["საათებ","სამუშაო დრო","working hours","opening hours","hours"]
+  };
 
-    out += (lang==='ka' ? "=== სრული მენიუ (ბურგერები, კერძები) ===\n" : "=== FULL MENU (burgers & dishes) ===\n");
-    BURGERS.forEach(b=>{
-      out += `- ${L(b).name}: ${L(b).desc} — ${b.price}₾\n`;
-    });
-
-    out += (lang==='ka' ? "\n=== ბურგერების შემადგენლობა (ფენებით) ===\n" : "\n=== BURGER COMPOSITION (layer by layer) ===\n");
-    COMPOSITIONS.forEach(c=>{
-      out += `- ${L(c)}: ` + c.layers.map(l=>L(l)).join(", ") + "\n";
-    });
-
-    out += (lang==='ka' ? "\n=== სასმელები ===\n" : "\n=== DRINKS ===\n");
-    DRINKS.forEach(d=>{
-      out += `- ${L(d).name}: ${L(d).desc} — ${d.price}₾\n`;
-    });
-
-    out += (lang==='ka' ? "\n=== კომბო მენიუ ===\n" : "\n=== COMBO MENU ===\n");
-    COMBOS.forEach(c=>{
-      out += `- ${L(c).name} (${L(c).tag}): ${L(c).sub} — ${c.price}₾\n`;
-    });
-
-    out += (lang==='ka' ? "\n=== საკონტაქტო ინფორმაცია ===\n" : "\n=== CONTACT INFO ===\n");
-    out += `${lang==='ka' ? 'ტელეფონები' : 'Phones'}: ${CONTACT_INFO.phones.join(", ")}\n`;
-    out += `${lang==='ka' ? 'მისამართი' : 'Address'}: ${L(CONTACT_INFO.address)}\n`;
-    out += `Facebook: ${CONTACT_INFO.facebook}\n`;
-    out += `Instagram: ${CONTACT_INFO.instagram}\n`;
-
-    return out;
+  function normalizeChatText(t){
+    return t
+      .toLowerCase()
+      .replace(/[.,!?;:()"'`\-–—]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
-  function buildSystemPrompt(lang){
-    const kb = buildKnowledgeBase(lang);
-    const langName = lang === 'ka' ? 'Georgian (ქართული)' : 'English';
-    return `You are the official virtual assistant for "${CONTACT_INFO.name}", a burger restaurant. `
-      + `You must ONLY answer questions using the information below about this restaurant's menu, ingredients/composition, drinks, combos, prices, address, and contact details. `
-      + `Do not invent items, prices, or facts that are not listed below. If someone asks something unrelated to this restaurant (general knowledge, other businesses, unrelated topics), politely explain that you can only help with questions about ${CONTACT_INFO.name} and steer them back to the menu, ingredients, drinks, prices, location or contact info. `
-      + `Always reply in ${langName}, in a warm, friendly, concise style suited to a chat widget (short paragraphs, no markdown headers). `
-      + `Use the ₾ (lari) symbol for prices exactly as given below.\n\n`
-      + `RESTAURANT DATA:\n${kb}`;
+  function containsAny(text, list){
+    return list.some(k => text.includes(k));
+  }
+
+  // Combined searchable index built straight from the live menu data —
+  // stays in sync automatically if items are added/edited above.
+  function buildItemIndex(){
+    const idx = [];
+    BURGERS.forEach(b => idx.push({ kind:'burger', item:b }));
+    DRINKS.forEach(d => idx.push({ kind:'drink', item:d }));
+    COMBOS.forEach(c => idx.push({ kind:'combo', item:c }));
+    return idx;
+  }
+  const CHAT_ITEM_INDEX = buildItemIndex();
+
+  function findMatchingItems(normQuery){
+    const found = [];
+    CHAT_ITEM_INDEX.forEach(entry => {
+      const kaWords = normalizeChatText(entry.item.ka.name).split(' ').filter(w => w.length >= 4);
+      const enWords = normalizeChatText(entry.item.en.name).split(' ').filter(w => w.length >= 3);
+      const hit = kaWords.some(w => normQuery.includes(w)) || enWords.some(w => normQuery.includes(w));
+      if (hit) found.push(entry);
+    });
+    return found;
+  }
+
+  function findMatchingCompositions(normQuery){
+    return COMPOSITIONS.filter(c => {
+      const kaWords = normalizeChatText(c.ka).split(' ').filter(w => w.length >= 4);
+      const enWords = normalizeChatText(c.en).split(' ').filter(w => w.length >= 3);
+      return kaWords.some(w => normQuery.includes(w)) || enWords.some(w => normQuery.includes(w));
+    });
+  }
+
+  function itemLine(entry, lang){
+    const d = entry.item[lang];
+    if (entry.kind === 'combo') return `${d.name} (${d.tag}) — ${d.sub} — ${entry.item.price}₾`;
+    return `${d.name} — ${d.desc} — ${entry.item.price}₾`;
+  }
+
+  function compositionLine(c, lang){
+    return `${c[lang]}: ` + c.layers.map(l => l[lang]).join(', ');
+  }
+
+  // Main reply generator — pure local logic, no network / no AI API involved.
+  function generateChatReply(userText, lang){
+    const q = normalizeChatText(userText);
+    if (!q) return lang==='ka' ? "დამწერეთ რამე და დაგეხმარებით! 🍔" : "Type something and I'll help! 🍔";
+
+    if (containsAny(q, CHAT_KEYWORDS.greeting))
+      return lang==='ka'
+        ? "გამარჯობა! 👋 მკითხეთ მენიუზე, ფასებზე, შემადგენლობაზე, სასმელებზე, კომბოებზე ან საკონტაქტო ინფორმაციაზე."
+        : "Hi there! 👋 Ask me about the menu, prices, ingredients, drinks, combos, or contact info.";
+
+    if (containsAny(q, CHAT_KEYWORDS.thanks))
+      return lang==='ka' ? "სიამოვნებით! 😊 კიდევ რამეში დაგეხმაროთ?" : "You're welcome! 😊 Anything else I can help with?";
+
+    if (containsAny(q, CHAT_KEYWORDS.bye))
+      return lang==='ka' ? "ნახვამდის! გელოდებით Noizy Bar-ში 🍔" : "See you soon at Noizy Bar! 🍔";
+
+    if (containsAny(q, CHAT_KEYWORDS.address))
+      return (lang==='ka' ? "📍 მისამართი: " : "📍 Address: ") + CONTACT_INFO.address[lang];
+
+    if (containsAny(q, CHAT_KEYWORDS.phone))
+      return (lang==='ka' ? "☎️ დაგვირეკეთ: " : "☎️ Call us: ") + CONTACT_INFO.phones.join(" ან ");
+
+    if (containsAny(q, CHAT_KEYWORDS.social))
+      return `Facebook: ${CONTACT_INFO.facebook}\nInstagram: ${CONTACT_INFO.instagram}`;
+
+    if (containsAny(q, CHAT_KEYWORDS.hours))
+      return lang==='ka'
+        ? "ზუსტი სამუშაო საათებისთვის დაგვირეკეთ: " + CONTACT_INFO.phones[0]
+        : "For exact opening hours please call us at: " + CONTACT_INFO.phones[0];
+
+    if (containsAny(q, CHAT_KEYWORDS.composition)){
+      const matches = findMatchingCompositions(q);
+      if (matches.length) return matches.map(c => compositionLine(c, lang)).join('\n\n');
+      return lang==='ka'
+        ? "რომელი ბურგერის შემადგენლობა გაინტერესებთ? მაგალითად: " + COMPOSITIONS.map(c=>c.ka).join(', ')
+        : "Which burger's composition would you like to know? For example: " + COMPOSITIONS.map(c=>c.en).join(', ');
+    }
+
+    // specific named item (also covers "how much does X cost")
+    const itemMatches = findMatchingItems(q);
+    if (itemMatches.length) return itemMatches.map(e => itemLine(e, lang)).join('\n');
+
+    if (containsAny(q, CHAT_KEYWORDS.drinksCat))
+      return DRINKS.map(d => `${d[lang].name} — ${d.price}₾`).join('\n');
+
+    if (containsAny(q, CHAT_KEYWORDS.combosCat))
+      return COMBOS.map(c => `${c[lang].name}: ${c[lang].sub} — ${c.price}₾`).join('\n');
+
+    if (containsAny(q, CHAT_KEYWORDS.menuCat))
+      return BURGERS.map(b => `${b[lang].name} — ${b.price}₾`).join('\n');
+
+    if (containsAny(q, CHAT_KEYWORDS.priceWord))
+      return lang==='ka'
+        ? "დაწერეთ კონკრეტული კერძის სახელი და გეტყვით ფასს, ან მკითხეთ 'სრული მენიუ'."
+        : "Tell me the name of a specific item and I'll give you the price, or ask for the 'full menu'.";
+
+    return lang==='ka'
+      ? "ვწუხვარ, ეს ვერ გავიგე 🙏 მკითხეთ მენიუზე, ფასებზე, შემადგენლობაზე, სასმელებზე, კომბოებზე ან საკონტაქტო ინფორმაციაზე."
+      : "Sorry, I didn't quite catch that 🙏 Ask me about the menu, prices, ingredients, drinks, combos, or contact info.";
   }
 
   function scrollChatToBottom(){
@@ -1068,60 +1147,22 @@
     input.value = '';
     input.style.height = 'auto';
     appendMessageBubble('user', text);
-    chatHistory.push({ role:'user', content:text });
 
     chatBusy = true;
     document.getElementById('chatSendBtn').disabled = true;
     showTypingIndicator();
 
-    try{
-      // Gemini's API uses "contents" with role "user"/"model" (not "assistant"),
-      // and each turn's text goes inside a "parts" array.
-      const contents = chatHistory.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      }));
+    // Small artificial delay just so replies feel conversational —
+    // no network request happens here, everything is computed locally.
+    const lang = currentLang;
+    await new Promise(resolve => setTimeout(resolve, 350 + Math.random() * 300));
 
-      const response = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: contents,
-          systemInstruction: {
-            parts: [{ text: buildSystemPrompt(currentLang) }]
-          }
-        })
-      });
+    hideTypingIndicator();
+    const reply = generateChatReply(text, lang);
+    appendMessageBubble('bot', reply);
 
-      const data = await response.json();
-
-      if (data.error){
-        throw new Error(data.error.message || 'gemini error');
-      }
-
-      const replyText = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts || [])
-        .map(part => part.text || '')
-        .filter(Boolean)
-        .join('\n')
-        .trim();
-
-      hideTypingIndicator();
-
-      if (!replyText){
-        throw new Error('empty response');
-      }
-
-      appendMessageBubble('bot', replyText);
-      chatHistory.push({ role:'assistant', content:replyText });
-    }catch(err){
-      hideTypingIndicator();
-      appendMessageBubble('error', I18N.chat_error[currentLang]);
-      // remove the last user message from history since it wasn't answered, to keep context clean on retry
-      chatHistory.pop();
-    }finally{
-      chatBusy = false;
-      document.getElementById('chatSendBtn').disabled = false;
-    }
+    chatBusy = false;
+    document.getElementById('chatSendBtn').disabled = false;
   }
 
   document.getElementById('chatInput').addEventListener('keydown', function(e){
