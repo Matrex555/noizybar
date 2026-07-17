@@ -214,6 +214,95 @@
   .anatomy-list{display:flex;flex-direction:column;gap:8px;}
   .anatomy-row{display:flex;align-items:center;gap:10px;font-size:.85rem;color:rgba(245,233,216,.75);}
   .anatomy-swatch{width:13px;height:13px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);}
+
+  /* ---------- AI CHAT WIDGET ---------- */
+  .chat-toggle{
+    position:fixed;bottom:22px;right:20px;z-index:50;width:60px;height:60px;border-radius:50%;
+    background:linear-gradient(135deg, var(--ember), var(--berry));border:none;color:var(--bg);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    box-shadow:0 14px 30px rgba(232,93,47,.45), 0 0 0 1px rgba(255,255,255,.08);
+    transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s ease;
+  }
+  .chat-toggle:hover{transform:translateY(-3px) scale(1.05);box-shadow:0 18px 36px rgba(232,93,47,.55);}
+  .chat-toggle svg{width:26px;height:26px;}
+  .chat-toggle .chat-close-icon{display:none;}
+  .chat-toggle.open .chat-chat-icon{display:none;}
+  .chat-toggle.open .chat-close-icon{display:block;}
+  .chat-dot{position:absolute;top:6px;right:6px;width:11px;height:11px;border-radius:50%;background:var(--herb);
+    box-shadow:0 0 0 2px var(--bg);}
+
+  .chat-panel{
+    position:fixed;bottom:96px;right:20px;z-index:49;width:min(370px,calc(100vw - 32px));
+    height:min(560px,calc(100vh - 140px));background:var(--card);border:1px solid rgba(232,163,61,.3);
+    border-radius:22px;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+    opacity:0;transform:translateY(16px) scale(.97);pointer-events:none;
+    transition:opacity .25s ease, transform .25s cubic-bezier(.16,1,.3,1);
+  }
+  .chat-panel.open{opacity:1;transform:translateY(0) scale(1);pointer-events:auto;}
+
+  .chat-head{
+    padding:16px 18px;display:flex;align-items:center;gap:12px;
+    background:linear-gradient(90deg, rgba(232,93,47,.16), rgba(229,65,124,.12));
+    border-bottom:1px solid rgba(232,163,61,.18);flex:none;
+  }
+  .chat-head-avatar{
+    width:38px;height:38px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg, var(--ember), var(--berry));
+    display:flex;align-items:center;justify-content:center;color:var(--bg);
+  }
+  .chat-head-avatar svg{width:20px;height:20px;}
+  .chat-head-text{flex:1;min-width:0;}
+  .chat-head-text .name{font-family:'Fraunces',serif;font-weight:600;font-size:1.02rem;}
+  .chat-head-text .status{font-family:'Space Mono',monospace;font-size:.68rem;color:var(--herb);letter-spacing:.05em;}
+  .chat-head-close{background:none;border:none;color:rgba(245,233,216,.5);cursor:pointer;padding:6px;border-radius:8px;}
+  .chat-head-close:hover{color:var(--cream);background:rgba(255,255,255,.06);}
+
+  .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+  .chat-messages::-webkit-scrollbar{width:6px;}
+  .chat-messages::-webkit-scrollbar-thumb{background:rgba(232,163,61,.3);border-radius:6px;}
+
+  .msg{max-width:82%;padding:11px 14px;border-radius:16px;font-size:.87rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
+  .msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(232,163,61,.15);border-bottom-left-radius:4px;}
+  .msg.user{align-self:flex-end;background:linear-gradient(135deg, var(--ember), #d1502a);color:#fff;border-bottom-right-radius:4px;}
+  .msg.error{align-self:center;background:rgba(193,57,43,.18);border:1px solid rgba(193,57,43,.4);color:#ff9b8a;font-size:.8rem;}
+
+  .typing-dots{align-self:flex-start;display:flex;gap:4px;padding:12px 14px;background:rgba(255,255,255,.06);
+    border-radius:16px;border-bottom-left-radius:4px;border:1px solid rgba(232,163,61,.15);}
+  .typing-dots span{width:6px;height:6px;border-radius:50%;background:rgba(245,233,216,.5);animation:typingBounce 1.2s infinite ease-in-out;}
+  .typing-dots span:nth-child(2){animation-delay:.15s;}
+  .typing-dots span:nth-child(3){animation-delay:.3s;}
+  @keyframes typingBounce{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-4px);opacity:1;}}
+
+  .chat-suggest{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px;flex:none;}
+  .chat-suggest button{
+    font-family:'Manrope',sans-serif;font-size:.75rem;font-weight:600;color:var(--cream);
+    background:rgba(255,255,255,.05);border:1px solid rgba(232,163,61,.25);border-radius:999px;
+    padding:7px 12px;cursor:pointer;transition:all .2s ease;
+  }
+  .chat-suggest button:hover{border-color:var(--bun);color:var(--bun);}
+
+  .chat-input-row{display:flex;align-items:flex-end;gap:8px;padding:12px 14px;border-top:1px solid rgba(232,163,61,.18);flex:none;}
+  .chat-input-row textarea{
+    flex:1;resize:none;max-height:90px;background:rgba(255,255,255,.05);border:1px solid rgba(232,163,61,.2);
+    color:var(--cream);border-radius:14px;padding:10px 14px;font-family:'Manrope',sans-serif;font-size:.87rem;
+    line-height:1.4;outline:none;transition:border-color .2s ease;
+  }
+  .chat-input-row textarea:focus{border-color:var(--bun);}
+  .chat-input-row textarea::placeholder{color:rgba(245,233,216,.35);}
+  .chat-send-btn{
+    width:40px;height:40px;border-radius:50%;flex:none;border:none;cursor:pointer;
+    background:linear-gradient(135deg, var(--ember), var(--berry));color:var(--bg);
+    display:flex;align-items:center;justify-content:center;transition:transform .18s ease, opacity .18s ease;
+  }
+  .chat-send-btn:hover{transform:scale(1.06);}
+  .chat-send-btn:disabled{opacity:.4;cursor:default;transform:none;}
+  .chat-send-btn svg{width:18px;height:18px;}
+
+  @media(max-width:480px){
+    .chat-panel{right:16px;bottom:88px;width:calc(100vw - 32px);}
+    .chat-toggle{right:16px;bottom:18px;}
+  }
 </style>
 </head>
 <body>
@@ -453,6 +542,39 @@
   </div>
 </section>
 
+<!-- ================= AI CHAT WIDGET ================= -->
+<button class="chat-toggle" id="chatToggle" onclick="toggleChat()" aria-label="chat">
+  <svg class="chat-chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  <svg class="chat-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  <span class="chat-dot" id="chatDot"></span>
+</button>
+
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-head">
+    <div class="chat-head-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v1H8a5 5 0 0 0-5 5v1a2 2 0 0 0 2 2v3a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-3a2 2 0 0 0 2-2v-1a5 5 0 0 0-5-5h-1V5a3 3 0 0 0-3-3z"/><circle cx="9" cy="13" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
+    </div>
+    <div class="chat-head-text">
+      <div class="name" id="chatHeadName">Noizy AI</div>
+      <div class="status" id="chatHeadStatus">&#9679; ონლაინ</div>
+    </div>
+    <button class="chat-head-close" onclick="toggleChat()" aria-label="close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="chat-messages" id="chatMessages"></div>
+
+  <div class="chat-suggest" id="chatSuggest"></div>
+
+  <div class="chat-input-row">
+    <textarea id="chatInput" rows="1" placeholder="..."></textarea>
+    <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()" aria-label="send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
 <script>
   // ---------------- I18N ----------------
   let currentLang = 'ka';
@@ -484,7 +606,19 @@
     about_text:        { ka:"სურამის ბურგერი — ხელნაკეთი ბურგერები, ცოცხალ ცეცხლზე შემწვარი, ადგილობრივი გემოთი. ჩვენთან ყოველი ბურგერი მზადდება შეკვეთისთანავე, გემოთი და გულით.",
                           en:"Surami Burger — handmade burgers, flame-grilled, with local flavor. Every burger here is made fresh to order, with taste and heart." },
     about_address:     { ka:"📍 სურამი, რუსთაველის ქუჩა №196, ხაშურის მუნიციპალიტეტი,", en:"📍 Surami, Rustaveli St. #196, Khashuri Municipality" },
-    price_label:       { ka:"ფასი", en:"Price" }
+    price_label:       { ka:"ფასი", en:"Price" },
+
+    chat_name:         { ka:"Noizy AI", en:"Noizy AI" },
+    chat_status:       { ka:"&#9679; ონლაინ", en:"&#9679; Online" },
+    chat_placeholder:  { ka:"დაწერეთ შეკითხვა...", en:"Type your question..." },
+    chat_greeting:     { ka:"გამარჯობა! 👋 მე ვარ Noizy Bar-ის ასისტენტი. შემიძლია გითხრათ მენიუზე, ფასებზე, შემადგენლობაზე, სასმელებზე, კომბოებზე, მისამართსა და საკონტაქტო ინფორმაციაზე. რით შემიძლია დაგეხმაროთ?",
+                          en:"Hi! 👋 I'm the Noizy Bar assistant. I can tell you about the menu, prices, ingredients, drinks, combos, address and contact info. How can I help?" },
+    chat_error:        { ka:"უკაცრავად, ამჟამად პასუხის გაცემა ვერ მოვახერხე. სცადეთ ხელახლა ან დაგვირეკეთ +995 598 96 97 99.",
+                          en:"Sorry, I couldn't respond right now. Please try again or call us at +995 598 96 97 99." },
+    chat_suggest_1:    { ka:"რა ღირს ბურგერები?", en:"What do the burgers cost?" },
+    chat_suggest_2:    { ka:"რა შედის კლასიკურ ბურგერში?", en:"What's in the classic burger?" },
+    chat_suggest_3:    { ka:"სად ხართ განთავსებული?", en:"Where are you located?" },
+    chat_suggest_4:    { ka:"რა სასმელები გაქვთ?", en:"What drinks do you have?" }
   };
 
   function applyStaticI18n(){
@@ -500,6 +634,7 @@
     currentLang = currentLang === 'ka' ? 'en' : 'ka';
     applyStaticI18n();
     renderGrids();
+    if (typeof updateChatStaticTexts === 'function') updateChatStaticTexts();
   }
 
   const BURGERS = [
@@ -784,9 +919,195 @@
     window.scrollTo({top:0, behavior:'smooth'});
   }
 
+  // ---------------- AI CHAT WIDGET ----------------
+  let chatOpen = false;
+  let chatStarted = false;
+  let chatHistory = []; // {role:'user'|'assistant', content:'...'}
+  let chatBusy = false;
+
+  const CONTACT_INFO = {
+    phones: ["+995 598 96 97 99", "+995 555 90 27 33"],
+    address: { ka:"სურამი, რუსთაველის ქუჩა №196, ხაშურის მუნიციპალიტეტი", en:"Surami, Rustaveli St. #196, Khashuri Municipality" },
+    facebook: "https://www.facebook.com/share/1EJ7hQyPb9/?mibextid=wwXIfr",
+    instagram: "https://www.instagram.com/noizybar/?__pwa=1",
+    name: "Noizy Bar"
+  };
+
+  // Builds a full, current-language knowledge base string from the live site data
+  // so the assistant always answers from exactly what's on the site.
+  function buildKnowledgeBase(lang){
+    const L = (obj) => obj[lang] || obj.ka;
+    let out = `${CONTACT_INFO.name} — ${lang==='ka' ? 'ხელნაკეთი ბურგერების ბარი სურამში' : 'a handmade burger bar in Surami, Georgia'}.\n\n`;
+
+    out += (lang==='ka' ? "=== სრული მენიუ (ბურგერები, კერძები) ===\n" : "=== FULL MENU (burgers & dishes) ===\n");
+    BURGERS.forEach(b=>{
+      out += `- ${L(b).name}: ${L(b).desc} — ${b.price}₾\n`;
+    });
+
+    out += (lang==='ka' ? "\n=== ბურგერების შემადგენლობა (ფენებით) ===\n" : "\n=== BURGER COMPOSITION (layer by layer) ===\n");
+    COMPOSITIONS.forEach(c=>{
+      out += `- ${L(c)}: ` + c.layers.map(l=>L(l)).join(", ") + "\n";
+    });
+
+    out += (lang==='ka' ? "\n=== სასმელები ===\n" : "\n=== DRINKS ===\n");
+    DRINKS.forEach(d=>{
+      out += `- ${L(d).name}: ${L(d).desc} — ${d.price}₾\n`;
+    });
+
+    out += (lang==='ka' ? "\n=== კომბო მენიუ ===\n" : "\n=== COMBO MENU ===\n");
+    COMBOS.forEach(c=>{
+      out += `- ${L(c).name} (${L(c).tag}): ${L(c).sub} — ${c.price}₾\n`;
+    });
+
+    out += (lang==='ka' ? "\n=== საკონტაქტო ინფორმაცია ===\n" : "\n=== CONTACT INFO ===\n");
+    out += `${lang==='ka' ? 'ტელეფონები' : 'Phones'}: ${CONTACT_INFO.phones.join(", ")}\n`;
+    out += `${lang==='ka' ? 'მისამართი' : 'Address'}: ${L(CONTACT_INFO.address)}\n`;
+    out += `Facebook: ${CONTACT_INFO.facebook}\n`;
+    out += `Instagram: ${CONTACT_INFO.instagram}\n`;
+
+    return out;
+  }
+
+  function buildSystemPrompt(lang){
+    const kb = buildKnowledgeBase(lang);
+    const langName = lang === 'ka' ? 'Georgian (ქართული)' : 'English';
+    return `You are the official virtual assistant for "${CONTACT_INFO.name}", a burger restaurant. `
+      + `You must ONLY answer questions using the information below about this restaurant's menu, ingredients/composition, drinks, combos, prices, address, and contact details. `
+      + `Do not invent items, prices, or facts that are not listed below. If someone asks something unrelated to this restaurant (general knowledge, other businesses, unrelated topics), politely explain that you can only help with questions about ${CONTACT_INFO.name} and steer them back to the menu, ingredients, drinks, prices, location or contact info. `
+      + `Always reply in ${langName}, in a warm, friendly, concise style suited to a chat widget (short paragraphs, no markdown headers). `
+      + `Use the ₾ (lari) symbol for prices exactly as given below.\n\n`
+      + `RESTAURANT DATA:\n${kb}`;
+  }
+
+  function scrollChatToBottom(){
+    const box = document.getElementById('chatMessages');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function appendMessageBubble(role, text){
+    const box = document.getElementById('chatMessages');
+    const div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : (role === 'error' ? 'error' : 'bot'));
+    div.textContent = text;
+    box.appendChild(div);
+    scrollChatToBottom();
+  }
+
+  function showTypingIndicator(){
+    const box = document.getElementById('chatMessages');
+    const el = document.createElement('div');
+    el.className = 'typing-dots';
+    el.id = 'typingIndicator';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    box.appendChild(el);
+    scrollChatToBottom();
+  }
+
+  function hideTypingIndicator(){
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+
+  function renderChatSuggestions(){
+    const wrap = document.getElementById('chatSuggest');
+    const keys = ['chat_suggest_1','chat_suggest_2','chat_suggest_3','chat_suggest_4'];
+    wrap.innerHTML = keys.map(k => `<button onclick="sendChatMessage('${I18N[k][currentLang].replace(/'/g, "\\'")}')">${I18N[k][currentLang]}</button>`).join('');
+  }
+
+  function updateChatStaticTexts(){
+    document.getElementById('chatHeadName').textContent = I18N.chat_name[currentLang];
+    document.getElementById('chatHeadStatus').innerHTML = I18N.chat_status[currentLang];
+    document.getElementById('chatInput').placeholder = I18N.chat_placeholder[currentLang];
+    renderChatSuggestions();
+  }
+
+  function toggleChat(){
+    chatOpen = !chatOpen;
+    const panel = document.getElementById('chatPanel');
+    const toggleBtn = document.getElementById('chatToggle');
+    panel.classList.toggle('open', chatOpen);
+    toggleBtn.classList.toggle('open', chatOpen);
+
+    if (chatOpen && !chatStarted){
+      chatStarted = true;
+      updateChatStaticTexts();
+      appendMessageBubble('bot', I18N.chat_greeting[currentLang]);
+      const dot = document.getElementById('chatDot');
+      if (dot) dot.style.display = 'none';
+    }
+    if (chatOpen){
+      document.getElementById('chatInput').focus();
+    }
+  }
+
+  async function sendChatMessage(presetText){
+    const input = document.getElementById('chatInput');
+    const text = (typeof presetText === 'string' ? presetText : input.value).trim();
+    if (!text || chatBusy) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    appendMessageBubble('user', text);
+    chatHistory.push({ role:'user', content:text });
+
+    chatBusy = true;
+    document.getElementById('chatSendBtn').disabled = true;
+    showTypingIndicator();
+
+    try{
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          system: buildSystemPrompt(currentLang),
+          messages: chatHistory
+        })
+      });
+
+      const data = await response.json();
+      const replyText = (data.content || [])
+        .map(block => block.type === 'text' ? block.text : '')
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+
+      hideTypingIndicator();
+
+      if (!replyText){
+        throw new Error('empty response');
+      }
+
+      appendMessageBubble('bot', replyText);
+      chatHistory.push({ role:'assistant', content:replyText });
+    }catch(err){
+      hideTypingIndicator();
+      appendMessageBubble('error', I18N.chat_error[currentLang]);
+      // remove the last user message from history since it wasn't answered, to keep context clean on retry
+      chatHistory.pop();
+    }finally{
+      chatBusy = false;
+      document.getElementById('chatSendBtn').disabled = false;
+    }
+  }
+
+  document.getElementById('chatInput').addEventListener('keydown', function(e){
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      sendChatMessage();
+    }
+  });
+
+  document.getElementById('chatInput').addEventListener('input', function(){
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 90) + 'px';
+  });
+
   // init
   renderGrids();
   applyStaticI18n();
+  renderChatSuggestions();
 </script>
 
 </body>
